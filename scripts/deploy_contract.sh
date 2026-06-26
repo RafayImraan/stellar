@@ -92,20 +92,20 @@ try_deploy() {
   shift
   echo -e "${BLUE}=== Deploying to $STELLAR_NETWORK_NAME ($desc) ===${NC}"
   local output
-  output=$(stellar contract deploy "$@" 2>&1) || {
-    echo -e "${YELLOW}  $desc failed.${NC}"
+  # stderr (ℹ️ logs) passes through to terminal; stdout (contract ID) is captured
+  output=$(stellar contract deploy "$@") || {
+    echo -e "${YELLOW}  $desc failed (see above).${NC}"
     return 1
   }
-  # Trim whitespace
-  output="${output#"${output%%[![:space:]]*}"}"
-  output="${output%"${output##*[![:space:]]}"}"
-  # Stellar contract IDs are 56 hex chars
-  if [ "${#output}" -eq 56 ]; then
+  # The ID is the last non-empty line of stdout
+  output=$(echo "$output" | grep -v '^\s*$' | tail -1)
+  # Stellar contract IDs are 56 base32 chars (A-Z, 2-7)
+  if echo "$output" | grep -qE '^[A-Z2-7]{56}$'; then
     save_contract_id "$output" >&2
     echo "$output"
     return 0
   fi
-  echo -e "${YELLOW}  $desc output didn't look like a contract ID: $output${NC}" >&2
+  echo -e "${YELLOW}  $desc output: $output${NC}" >&2
   return 1
 }
 
