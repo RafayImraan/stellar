@@ -52,7 +52,7 @@ bb prove \
   --bytecode_path "$BYTECODE" \
   --witness_path "$WITNESS" \
   --output_path "$CIRCUIT_TARGET" \
-  --output_format bytes_and_fields
+  --output_format binary
 
 echo -e "${BLUE}=== Step 5: Generate verification key ===${NC}"
 bb write_vk \
@@ -60,7 +60,7 @@ bb write_vk \
   --oracle_hash keccak \
   --bytecode_path "$BYTECODE" \
   --output_path "$CIRCUIT_TARGET" \
-  --output_format bytes_and_fields
+  --output_format binary
 
 # Flatten nested output dirs from bb (same as rs-soroban-ultrahonk)
 if [ -d "$CIRCUIT_TARGET/vk/vk" ]; then
