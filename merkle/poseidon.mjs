@@ -1,7 +1,7 @@
 /**
- * Hash helpers matching Noir's std::sha256-based Merkle tree hashing.
+ * Hash helpers matching Noir's std::hash::blake2s-based Merkle tree hashing.
  *
- * Uses Node.js crypto SHA256 (guaranteed parity with Noir circuit).
+ * Uses Node.js crypto BLAKE2s (guaranteed parity with Noir circuit).
  */
 
 import { createHash } from "crypto";
@@ -30,44 +30,44 @@ export function toField(value) {
 }
 
 /**
- * SHA256-based pair hash — concatenate two field elements as 32-byte BE,
- * hash with SHA256, convert result back to Field.
- * Matches Noir's hash_pair() in the compliance circuit.
+ * BLAKE2s-based pair hash — concatenate two field elements as 32-byte BE,
+ * hash with BLAKE2s, convert result back to Field.
+ * Matches Noir's hash_pair() in the compliance circuit (std::hash::blake2s).
  */
-export function sha256Pair(a, b) {
+export function blake2sPair(a, b) {
   const aBytes = bigintToBytes32(BigInt(a));
   const bBytes = bigintToBytes32(BigInt(b));
   const combined = new Uint8Array(64);
   combined.set(aBytes, 0);
   combined.set(bBytes, 32);
-  const hash = createHash("sha256").update(Buffer.from(combined)).digest();
+  const hash = createHash("blake2s").update(Buffer.from(combined)).digest();
   return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
 }
 
-/** SHA256-based single-input hash (for leaf encoding). */
-export function sha256Single(x) {
+/** BLAKE2s-based single-input hash (for leaf encoding). */
+export function blake2sSingle(x) {
   const bytes = bigintToBytes32(BigInt(x));
-  const hash = createHash("sha256").update(Buffer.from(bytes)).digest();
+  const hash = createHash("blake2s").update(Buffer.from(bytes)).digest();
   return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
 }
 
-/** Encode ISO country code (2 chars) to a Field via SHA256. */
+/** Encode ISO country code (2 chars) to a Field via BLAKE2s. */
 export function jurisdictionToField(code) {
   if (code.length !== 2) {
     throw new Error(`Country code must be 2 chars, got: ${code}`);
   }
   const packed =
     (BigInt(code.charCodeAt(0)) << 8n) | BigInt(code.charCodeAt(1));
-  return sha256Single(packed);
+  return blake2sSingle(packed);
 }
 
-/** Hash a Stellar-style address string to a Field (SHA256 of packed bytes). */
+/** Hash a Stellar-style address string to a Field (BLAKE2s of packed bytes). */
 export function addressToField(address) {
   let acc = 0n;
   for (let i = 0; i < address.length; i++) {
     acc = (acc * 256n + BigInt(address.charCodeAt(i))) % (2n ** 254n);
   }
-  return sha256Single(acc);
+  return blake2sSingle(acc);
 }
 
 /** BN254 field modulus (for comparisons). */

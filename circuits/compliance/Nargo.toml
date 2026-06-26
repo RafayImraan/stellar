@@ -6,4 +6,4 @@ compiler_version = ">=1.0.0"
 description = "ZK remittance compliance circuit — sanctions exclusion, amount range, jurisdiction membership"
 
 [dependencies]
-# No external dependencies — using std::sha256 for Merkle hashing (guarantees JS parity)
+# No external dependencies — using std::hash::blake2s for Merkle hashing (guarantees JS parity)

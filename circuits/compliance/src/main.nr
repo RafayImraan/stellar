@@ -4,11 +4,11 @@
 //   1. Sender is NOT on the sanctions Merkle tree (sorted-tree exclusion proof)
 //   2. Transfer amount is within [min_threshold, max_threshold]
 //   3. Jurisdiction is in the allowed jurisdictions Merkle tree
-//   4. Nullifier = SHA256(secret, nonce) prevents proof replay
+//   4. Nullifier = BLAKE2s(secret, nonce) prevents proof replay
 //
-// Uses std::sha256 for Merkle hashing (guarantees parity with JS tree builder).
+// Uses std::hash::blake2s for Merkle hashing (guarantees parity with JS tree builder).
 
-use std::hash::sha256;
+use std::hash::blake2s;
 
 /// Merkle tree depth — 2^8 = 256 leaves (matches off-chain builder).
 global TREE_DEPTH: u32 = 8;
@@ -30,8 +30,8 @@ fn field_lt(a: Field, b: Field) -> bool {
     result
 }
 
-/// SHA256-based pair hash — byte-concatenate two field elements and hash.
-/// Guarantees parity with Node.js crypto.createHash('sha256') in build_tree.js.
+/// BLAKE2s-based pair hash — byte-concatenate two field elements and hash.
+/// Guarantees parity with Node.js crypto.createHash('blake2s') in build_tree.js.
 fn hash_pair(left: Field, right: Field) -> Field {
     let mut input: [u8; 64] = [0; 64];
     let left_bytes: [u8; 32] = left.to_be_bytes();
@@ -40,7 +40,7 @@ fn hash_pair(left: Field, right: Field) -> Field {
         input[i] = left_bytes[i];
         input[i + 32] = right_bytes[i];
     }
-    let hash: [u8; 32] = sha256(input);
+    let hash: [u8; 32] = blake2s(input);
     Field::from_be_bytes(hash)
 }
 
