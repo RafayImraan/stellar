@@ -5,12 +5,6 @@
 //! Verifies UltraHonk ZK proofs from the compliance Noir circuit and tracks
 //! nullifiers to prevent proof replay. Based on rs-soroban-ultrahonk patterns.
 
-extern crate alloc;
-
-#[cfg(target_arch = "wasm32")]
-#[global_allocator]
-static ALLOCATOR: soroban_sdk::WasmiAllocator = soroban_sdk::WasmiAllocator;
-
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, symbol_short, Bytes, BytesN, Env, Map,
     Symbol,
