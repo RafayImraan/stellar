@@ -115,12 +115,12 @@ rustup target add wasm32v1-none
 # 2. Stellar CLI (v3.2+)
 cargo install --locked stellar-cli
 
-# 3. Noir + Barretenberg
+# 3. Noir + Barretenberg (specific versions required)
 curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
-noirup
+noirup -v 1.0.0-beta.9
 
 curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/master/barretenberg/cpp/installation/install | bash
-bbup
+bbup -v 0.87.0
 
 # 4. Node.js 18+
 node --version
@@ -136,7 +136,33 @@ cd zk-remittance
 cd merkle && npm install && cd ..
 ```
 
+### Verify / install correct tool versions
+
+The on-chain verifier requires **bb 0.87.0** and **nargo 1.0.0-beta.9** (bb v5 proof format is not supported by the Soroban verifier).
+
+```bash
+# Check versions
+make check-versions
+
+# Install correct versions (if needed)
+make setup-versions
+```
+
 ---
+
+## Quick Start (Makefile)
+
+```bash
+# Install required tool versions first (one-time)
+make setup-versions
+
+# Full pipeline: deps → merkle → proof → contract → submit
+make all && make deploy && make submit
+```
+
+> `make all` runs: check-deps → merkle-deps → merkle-data → circuit-proof (nargo compile + bb prove/verify)
+> `make deploy` builds the Soroban contract and deploys to testnet
+> `make submit` invokes `verify_compliance` on-chain
 
 ## Running Locally (Step by Step)
 
