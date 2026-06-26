@@ -8,6 +8,12 @@ source "$SCRIPT_DIR/config.sh"
 
 export PATH="$HOME/.nargo/bin:$HOME/.bb/bin:$PATH"
 
+if ! command -v bb >/dev/null 2>&1; then
+  echo -e "${YELLOW}bb not found — install with: bbup${NC}"
+  echo -e "${YELLOW}If bbup requires a version flag, try: bbup -v 0.87.0${NC}"
+  exit 1
+fi
+
 echo -e "${BLUE}=== Step 1: Build Merkle trees ===${NC}"
 pushd "$MERKLE_DIR" >/dev/null
 if [ ! -d node_modules ]; then

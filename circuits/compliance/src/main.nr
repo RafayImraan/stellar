@@ -6,24 +6,28 @@
 //   3. Jurisdiction is in the allowed jurisdictions Merkle tree
 //   4. Nullifier = Poseidon(secret, nonce) prevents proof replay
 //
-// Note: std::merkle was removed from Noir stdlib; we implement compute_merkle_root
-// locally using Poseidon hash_2 (same interface as the former stdlib helper).
+// Compatible with nargo 1.0.0-beta.22+ (uses bool for Merkle path direction).
 
-use poseidon::poseidon::bn254::{hash_1, hash_2};
+use poseidon::poseidon::bn254::hash_2;
 
 /// Merkle tree depth — 2^8 = 256 leaves (matches off-chain builder).
 global TREE_DEPTH: u32 = 8;
 
+/// Compare two field elements as integers (required in Noir 1.0+).
+fn field_lt(a: Field, b: Field) -> bool {
+    (a as u256) < (b as u256)
+}
+
 /// Reconstruct a Merkle root from a leaf, sibling path, and left/right indicators.
-/// `indices[i] == 0` means the current node is the left child at level i.
+/// `indices[i] == false` means the current node is the left child at level i.
 fn compute_merkle_root<let N: u32>(
     leaf: Field,
     siblings: [Field; N],
-    indices: [u1; N],
+    indices: [bool; N],
 ) -> Field {
     let mut current = leaf;
     for i in 0..N {
-        current = if indices[i] == 0 {
+        current = if !indices[i] {
             hash_2([siblings[i], current])
         } else {
             hash_2([current, siblings[i]])
@@ -49,12 +53,12 @@ fn main(
     left_neighbor: Field,
     right_neighbor: Field,
     left_siblings: [Field; TREE_DEPTH],
-    left_indices: [u1; TREE_DEPTH],
+    left_indices: [bool; TREE_DEPTH],
     right_siblings: [Field; TREE_DEPTH],
-    right_indices: [u1; TREE_DEPTH],
+    right_indices: [bool; TREE_DEPTH],
     // Jurisdiction membership path
     jurisdiction_siblings: [Field; TREE_DEPTH],
-    jurisdiction_indices: [u1; TREE_DEPTH],
+    jurisdiction_indices: [bool; TREE_DEPTH],
 ) {
     // ── 1. Nullifier binding (anti-replay) ────────────────────────────────
     let computed_nullifier = hash_2([secret, nonce]);
@@ -65,8 +69,6 @@ fn main(
     assert(amount <= max_threshold, "Amount above maximum threshold");
 
     // ── 3. Sanctions NON-membership (sorted Merkle exclusion) ─────────────
-    // Prove left_neighbor and right_neighbor are consecutive members of the
-    // sorted sanctions tree, and sender_address_hash lies strictly between them.
     let left_root = compute_merkle_root(left_neighbor, left_siblings, left_indices);
     assert(left_root == merkle_root, "Left neighbor not in sanctions tree");
 
@@ -76,8 +78,8 @@ fn main(
     // Strict ordering: left < sender < right  =>  sender NOT in sorted set
     assert(left_neighbor != sender_address_hash);
     assert(sender_address_hash != right_neighbor);
-    assert(left_neighbor < sender_address_hash, "Sender not above left bound");
-    assert(sender_address_hash < right_neighbor, "Sender not below right bound");
+    assert(field_lt(left_neighbor, sender_address_hash), "Sender not above left bound");
+    assert(field_lt(sender_address_hash, right_neighbor), "Sender not below right bound");
 
     // ── 4. Jurisdiction membership proof ──────────────────────────────────
     let juris_root =
@@ -87,10 +89,15 @@ fn main(
 
 #[test]
 fn test_amount_range_valid() {
-    // Smoke test: amount within bounds passes range checks (other constraints use dummy fields)
     let min: u64 = 100;
     let max: u64 = 999999;
     let amt: u64 = 50000;
     assert(min <= amt);
     assert(amt <= max);
+}
+
+#[test]
+fn test_field_lt() {
+    assert(field_lt(1, 2));
+    assert(!field_lt(2, 1));
 }
