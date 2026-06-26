@@ -40,7 +40,12 @@ stellar contract invoke \
 echo -e "\n${GREEN}Compliance verified on-chain!${NC}"
 
 # Query nullifier status (extract from public inputs — last 32 bytes of 160-byte file)
+NULLIFIER_HEX=""
 if command -v xxd >/dev/null 2>&1; then
   NULLIFIER_HEX=$(xxd -p -s 128 -l 32 "$PUBLIC_INPUTS" | tr -d '\n')
+elif command -v od >/dev/null 2>&1; then
+  NULLIFIER_HEX=$(od -An -tx1 -j 128 -N 32 "$PUBLIC_INPUTS" | tr -d ' \n')
+fi
+if [ -n "$NULLIFIER_HEX" ]; then
   echo -e "${BLUE}Nullifier (hex): 0x${NULLIFIER_HEX}${NC}"
 fi

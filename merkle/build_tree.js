@@ -96,7 +96,7 @@ function getMerkleProof(layers, leafIndex) {
     const isRight = idx % 2 === 1;
     const siblingIdx = isRight ? idx - 1 : idx + 1;
     siblings.push(layer[siblingIdx] ?? 0n);
-    indices.push(isRight ? "true" : "false");
+    indices.push(isRight ? "1" : "0");
     idx = Math.floor(idx / 2);
   }
 

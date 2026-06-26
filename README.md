@@ -138,7 +138,7 @@ cd merkle && npm install && cd ..
 
 ### Verify / install correct tool versions
 
-The on-chain verifier requires **bb 0.87.0** and **nargo 1.0.0-beta.9** (bb v5 proof format is not supported by the Soroban verifier).
+The on-chain verifier requires **bb 0.87.0** and **nargo 1.0.0-beta.9**. If you have bb v5+, the VK will be auto-converted from 1888→1760 bytes by `convert_vk.js` during deploy.
 
 ```bash
 # Check versions

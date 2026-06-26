@@ -70,10 +70,24 @@ function CircuitProof {
 
     New-Item -ItemType Directory -Force -Path $ProofsDir | Out-Null
 
-    Step "Generating UltraHonk proof + VK (bb v5 --write_vk)"
-    bb prove --scheme ultra_honk --oracle_hash keccak `
-        --bytecode_path $Bytecode --witness_path $Witness `
-        --output_path $CircuitTarget --output_format binary --write_vk
+    Step "Detecting bb version"
+    $BB_MAJOR = (bb --version | Select-Object -First 1) -replace '[^0-9].*', ''
+    if (-not $BB_MAJOR) { $BB_MAJOR = 0 }
+    Write-Host "  bb major version: $BB_MAJOR"
+
+    Step "Generating UltraHonk proof + VK"
+    if ([int]$BB_MAJOR -ge 5) {
+        bb prove --scheme ultra_honk --oracle_hash keccak `
+            --bytecode_path $Bytecode --witness_path $Witness `
+            --output_path $CircuitTarget --output_format binary --write_vk
+    } else {
+        bb prove --scheme ultra_honk --oracle_hash keccak `
+            --bytecode_path $Bytecode --witness_path $Witness `
+            --output_path $CircuitTarget --output_format bytes_and_fields
+        bb write_vk --scheme ultra_honk --oracle_hash keccak `
+            --bytecode_path $Bytecode --output_path $CircuitTarget `
+            --output_format bytes_and_fields
+    }
 
     # Flatten nested output dirs from bb (same as rs-soroban-ultrahonk)
     if (Test-Path "$CircuitTarget/vk/vk") {
@@ -98,12 +112,21 @@ function CircuitProof {
 
 function Deploy {
     Step "Deploying Soroban contract"
-    & "$Root\scripts\deploy_contract.sh"
+    # Requires Git Bash or WSL in PATH for .sh scripts
+    if (Get-Command bash -ErrorAction SilentlyContinue) {
+        bash "$Root\scripts\deploy_contract.sh"
+    } else {
+        Write-Host "bash not found — run deploy_contract.sh in Git Bash/WSL" -ForegroundColor Yellow
+    }
 }
 
 function Submit {
     Step "Submitting proof on-chain"
-    & "$Root\scripts\submit_proof.sh"
+    if (Get-Command bash -ErrorAction SilentlyContinue) {
+        bash "$Root\scripts\submit_proof.sh"
+    } else {
+        Write-Host "bash not found — run submit_proof.sh in Git Bash/WSL" -ForegroundColor Yellow
+    }
 }
 
 function Clean {

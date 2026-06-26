@@ -60,7 +60,12 @@ CONTRACT_ID=$(stellar contract deploy \
   -- \
   --vk_bytes-file-path "$VK_PATH")
 
-echo "CONTRACT_ID=$CONTRACT_ID" > "$ROOT_DIR/.env"
+# Update .env — preserve existing vars, add/update CONTRACT_ID and STELLAR_NETWORK_NAME
+if [ -f "$ROOT_DIR/.env" ]; then
+  sed -i "/^CONTRACT_ID=/d" "$ROOT_DIR/.env" 2>/dev/null || true
+  sed -i "/^STELLAR_NETWORK_NAME=/d" "$ROOT_DIR/.env" 2>/dev/null || true
+fi
+echo "CONTRACT_ID=$CONTRACT_ID" >> "$ROOT_DIR/.env"
 echo "STELLAR_NETWORK_NAME=$STELLAR_NETWORK_NAME" >> "$ROOT_DIR/.env"
 
 echo -e "\n${GREEN}Contract deployed!${NC}"
@@ -69,18 +74,14 @@ echo "  Saved to:    $ROOT_DIR/.env"
 
 # Verify VK was stored by calling vk_bytes()
 echo -e "${BLUE}=== Verifying VK storage ===${NC}"
-VK_CHECK=$(stellar contract invoke \
+if VK_CHECK=$(stellar contract invoke \
   --id "$CONTRACT_ID" \
   --source "$STELLAR_SOURCE_ACCOUNT" \
   --network "$STELLAR_NETWORK_NAME" \
   -- \
-  vk_bytes 2>&1) || {
-  echo -e "${RED}WARNING: vk_bytes() failed — VK may not be stored!${NC}"
-  echo "  Error: $VK_CHECK"
-}
-if echo "$VK_CHECK" | grep -q "Error"; then
-  echo -e "${RED}VK storage verification failed.${NC}"
-  echo "  $VK_CHECK"
+  vk_bytes 2>&1); then
+  echo -e "${GREEN}VK stored successfully (${#VK_CHECK} bytes returned).${NC}"
 else
-  echo -e "${GREEN}VK stored successfully.${NC}"
+  echo -e "${RED}VK storage verification failed — constructor may not have run.${NC}"
+  echo "  $VK_CHECK"
 fi

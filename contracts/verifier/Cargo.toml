@@ -12,7 +12,7 @@ soroban-sdk = { version = "26.0.1", features = ["alloc"] }
 # rs-soroban-ultrahonk main branch — expects 1760-byte VK (4×u64 + 27 G1 points),
 # soroban-sdk 26.0.1. Proof format: 456 × 32 = 14592 bytes, 128-byte limb-split G1.
 # VK conversion (1888→1760) is handled off-chain by scripts/convert_vk.js.
-ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", package = "ultrahonk_soroban_verifier", default-features = false }
+ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", package = "ultrahonk_soroban_verifier", rev = "661db07200f890b1bd9a7349ed787c70a706dd12", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { version = "26.0.1", features = ["testutils", "alloc"] }

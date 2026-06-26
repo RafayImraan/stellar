@@ -30,24 +30,38 @@ if (-not (Test-Path $Bytecode) -or -not (Test-Path $Witness)) {
 
 New-Item -ItemType Directory -Force -Path "$Root\proofs" | Out-Null
 
-Write-Host "=== Step 4: Generate UltraHonk proof ===" -ForegroundColor Cyan
-bb prove --scheme ultra_honk --oracle_hash keccak `
-  --bytecode_path $Bytecode --witness_path $Witness `
-  --output_path $CircuitTarget --output_format bytes_and_fields
+Write-Host "=== Step 4: Detect bb version ===" -ForegroundColor Cyan
+$BB_MAJOR = (bb --version | Select-Object -First 1) -replace '[^0-9].*', ''
+if (-not $BB_MAJOR) { $BB_MAJOR = 0 }
+Write-Host "  bb major version: $BB_MAJOR"
 
-Write-Host "=== Step 5: Generate verification key ===" -ForegroundColor Cyan
-bb write_vk --scheme ultra_honk --oracle_hash keccak `
-  --bytecode_path $Bytecode --output_path $CircuitTarget `
-  --output_format bytes_and_fields
+Write-Host "=== Step 5: Generate UltraHonk proof ===" -ForegroundColor Cyan
+if ([int]$BB_MAJOR -ge 5) {
+  bb prove --scheme ultra_honk --oracle_hash keccak `
+    --bytecode_path $Bytecode --witness_path $Witness `
+    --output_path $CircuitTarget --output_format binary --write_vk
+} else {
+  bb prove --scheme ultra_honk --oracle_hash keccak `
+    --bytecode_path $Bytecode --witness_path $Witness `
+    --output_path $CircuitTarget --output_format bytes_and_fields
+
+  Write-Host "=== Step 5b: Generate verification key ===" -ForegroundColor Cyan
+  bb write_vk --scheme ultra_honk --oracle_hash keccak `
+    --bytecode_path $Bytecode --output_path $CircuitTarget `
+    --output_format bytes_and_fields
+}
 
 Copy-Item "$CircuitTarget\proof" "$Root\proofs\compliance.proof" -Force
 Copy-Item "$CircuitTarget\public_inputs" "$Root\proofs\public_inputs" -Force
 Copy-Item "$CircuitTarget\vk" "$Root\proofs\vk" -Force
 
 Write-Host "=== Step 6: Local verification ===" -ForegroundColor Cyan
-bb verify --scheme ultra_honk --oracle_hash keccak `
-  --proof_path "$CircuitTarget\proof" `
-  --verification_key_path "$CircuitTarget\vk" `
-  --public_inputs_path "$CircuitTarget\public_inputs"
+if ([int]$BB_MAJOR -ge 5) {
+  bb verify --scheme ultra_honk --oracle_hash keccak `
+    -p "$CircuitTarget\proof" -k "$CircuitTarget\vk" -i "$CircuitTarget\public_inputs"
+} else {
+  bb verify --scheme ultra_honk --oracle_hash keccak `
+    -p "$CircuitTarget\proof" -k "$CircuitTarget\vk" -i "$CircuitTarget\public_inputs"
+}
 
 Write-Host "`nProof generated successfully!" -ForegroundColor Green
