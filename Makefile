@@ -21,8 +21,10 @@ check-deps:
 	@command -v node >/dev/null 2>&1 || { echo "Missing: node (Node.js 18+)"; exit 1; }
 	@command -v nargo >/dev/null 2>&1 || { echo "Missing: nargo (run noirup)"; exit 1; }
 	@command -v bb >/dev/null 2>&1 || { echo "Missing: bb (run bbup)"; exit 1; }
-	@command -v stellar >/dev/null 2>&1 || { echo "Missing: stellar CLI (cargo install stellar-cli)"; exit 1; }
 	@echo "  All prerequisites found."
+
+check-stellar:
+	@command -v stellar >/dev/null 2>&1 || { echo "Missing: stellar CLI (cargo install stellar-cli --locked)"; exit 1; }
 
 # ── Install Merkle Node.js deps ────────────────────────────────────────────
 merkle-deps:
@@ -92,12 +94,12 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 circuit-proof: $(PROOF_FILE)
 
 # ── Deploy contract to Stellar testnet ─────────────────────────────────────
-deploy:
+deploy: check-stellar
 	@echo "=== Deploying Soroban contract ==="
 	bash scripts/deploy_contract.sh
 
 # ── Submit proof to deployed contract ─────────────────────────────────────
-submit:
+submit: check-stellar
 	@echo "=== Submitting proof on-chain ==="
 	bash scripts/submit_proof.sh
 
