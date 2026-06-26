@@ -90,7 +90,7 @@ set +e
 try_deploy() {
   local desc="$1"
   shift
-  echo -e "${BLUE}=== Deploying to $STELLAR_NETWORK_NAME ($desc) ===${NC}"
+  echo -e "${BLUE}=== Deploying to $STELLAR_NETWORK_NAME ($desc) ===${NC}" >&2
   local output
   # stderr (ℹ️ logs) passes through to terminal; stdout (contract ID) is captured
   output=$(stellar contract deploy "$@") || {
@@ -136,31 +136,9 @@ if [ -n "$CONTRACT_ID" ] && check_vk_stored "$CONTRACT_ID"; then
   set -e; exit 0
 fi
 
-# ── Approach C: deploy WITHOUT constructor args, then call set_vk() ──────
-CONTRACT_ID=$(try_deploy "no args, then set_vk" \
-  --wasm "$WASM" \
-  --source "$STELLAR_SOURCE_ACCOUNT" \
-  --network "$STELLAR_NETWORK_NAME") || CONTRACT_ID=""
-
-if [ -z "$CONTRACT_ID" ]; then
-  echo -e "${RED}All deploy approaches failed.${NC}"
-  set -e; exit 1
-fi
-
-echo -e "${BLUE}=== Calling set_vk() on deployed contract ===${NC}"
-stellar contract invoke \
-  --id "$CONTRACT_ID" \
-  --source "$STELLAR_SOURCE_ACCOUNT" \
-  --network "$STELLAR_NETWORK_NAME" \
-  --send yes \
-  -- \
-  set_vk \
-  --vk_bytes "$VK_HEX"
-
-if check_vk_stored "$CONTRACT_ID"; then
-  echo -e "${GREEN}VK initialized via set_vk().${NC}"
-else
-  echo -e "${RED}set_vk() also failed — trying --vk_bytes-file-path with set_vk...${NC}"
+# ── Approach C: try set_vk on the contract from approach A or B ──────────
+if [ -n "$CONTRACT_ID" ]; then
+  echo -e "${BLUE}=== Constructor didn't store VK — calling set_vk() as fallback ===${NC}" >&2
   stellar contract invoke \
     --id "$CONTRACT_ID" \
     --source "$STELLAR_SOURCE_ACCOUNT" \
@@ -168,11 +146,10 @@ else
     --send yes \
     -- \
     set_vk \
-    --vk_bytes-file-path "$VK_PATH"
-  check_vk_stored "$CONTRACT_ID" || {
-    echo -e "${RED}All approaches exhausted. Contract deployed but VK not set.${NC}"
-    echo -e "${YELLOW}Try manually:${NC}"
-    echo "  stellar contract invoke --id $CONTRACT_ID --source $STELLAR_SOURCE_ACCOUNT --network $STELLAR_NETWORK_NAME --send yes -- set_vk --vk_bytes-file-path $VK_PATH"
-    exit 1
-  }
+    --vk_bytes "$VK_HEX" 2>&1 && check_vk_stored "$CONTRACT_ID" && { set -e; exit 0; }
 fi
+
+echo -e "${RED}All deploy approaches failed.${NC}" >&2
+echo -e "${YELLOW}Manually try:${NC}" >&2
+echo "  stellar contract invoke --id <CONTRACT_ID> --source $STELLAR_SOURCE_ACCOUNT --network $STELLAR_NETWORK_NAME --send yes -- set_vk --vk_bytes-file-path $VK_PATH" >&2
+set -e; exit 1
