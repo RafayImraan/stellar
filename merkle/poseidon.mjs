@@ -40,14 +40,14 @@ export function blake2sPair(a, b) {
   const combined = new Uint8Array(64);
   combined.set(aBytes, 0);
   combined.set(bBytes, 32);
-  const hash = createHash("blake2s").update(Buffer.from(combined)).digest();
+  const hash = createHash("BLAKE2s-256").update(Buffer.from(combined)).digest();
   return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
 }
 
 /** BLAKE2s-based single-input hash (for leaf encoding). */
 export function blake2sSingle(x) {
   const bytes = bigintToBytes32(BigInt(x));
-  const hash = createHash("blake2s").update(Buffer.from(bytes)).digest();
+  const hash = createHash("BLAKE2s-256").update(Buffer.from(bytes)).digest();
   return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
 }
 
