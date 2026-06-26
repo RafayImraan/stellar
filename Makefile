@@ -7,6 +7,15 @@ ifeq ($(wildcard $(BB)),)
   BB := bb
 endif
 
+# Detect bb version — v5+ uses --output_format binary + --write_vk combined
+# Older versions need --output_format bytes_and_fields + separate bb write_vk
+BB_MAJOR := $(shell $(BB) --version 2>/dev/null | head -1 | sed 's/[^0-9].*//' || echo 0)
+ifeq ($(shell [ "$(BB_MAJOR)" -ge 5 ] && echo 1 || echo 0), 1)
+  BB_USE_V5 := 1
+else
+  BB_USE_V5 := 0
+endif
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 MERKLE_DIR    := merkle
 MERKLE_DATA   := merkle/merkle_data.json
@@ -62,6 +71,7 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 	cd "$(CIRCUIT_DIR)" && nargo check && nargo compile && nargo execute
 	@echo "=== Generating UltraHonk proof ==="
 	mkdir -p "$(PROOFS_DIR)"
+ifeq ($(BB_USE_V5),1)
 	$(BB) prove \
 		--scheme ultra_honk \
 		--oracle_hash keccak \
@@ -70,6 +80,21 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 		--output_path "$(CIRCUIT_TARGET)" \
 		--output_format binary \
 		--write_vk
+else
+	$(BB) prove \
+		--scheme ultra_honk \
+		--oracle_hash keccak \
+		--bytecode_path "$(CIRCUIT_TARGET)/compliance.json" \
+		--witness_path "$(CIRCUIT_TARGET)/compliance.gz" \
+		--output_path "$(CIRCUIT_TARGET)" \
+		--output_format bytes_and_fields
+	$(BB) write_vk \
+		--scheme ultra_honk \
+		--oracle_hash keccak \
+		--bytecode_path "$(CIRCUIT_TARGET)/compliance.json" \
+		--output_path "$(CIRCUIT_TARGET)" \
+		--output_format bytes_and_fields
+endif
 	@# Flatten nested output dirs from bb (same as rs-soroban-ultrahonk)
 	@if [ -d "$(CIRCUIT_TARGET)/vk/vk" ]; then \
 		mv "$(CIRCUIT_TARGET)/vk/vk" "$(CIRCUIT_TARGET)/vk.tmp"; \
@@ -80,12 +105,21 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 	cp "$(CIRCUIT_TARGET)/public_inputs" "$(PUBLIC_INPUTS_FILE)"
 	cp "$(CIRCUIT_TARGET)/vk" "$(VK_FILE)"
 	@echo "=== Local verification ==="
+ifeq ($(BB_USE_V5),1)
 	$(BB) verify \
 		--scheme ultra_honk \
 		--oracle_hash keccak \
 		-p "$(CIRCUIT_TARGET)/proof" \
 		-k "$(CIRCUIT_TARGET)/vk" \
 		-i "$(CIRCUIT_TARGET)/public_inputs"
+else
+	$(BB) verify \
+		--scheme ultra_honk \
+		--oracle_hash keccak \
+		--proof_path "$(CIRCUIT_TARGET)/proof" \
+		--verification_key_path "$(CIRCUIT_TARGET)/vk" \
+		--public_inputs_path "$(CIRCUIT_TARGET)/public_inputs"
+endif
 	@echo ""
 	@echo "Proof generated successfully!"
 	@echo "  Proof:         $(PROOF_FILE)"

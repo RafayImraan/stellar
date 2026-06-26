@@ -45,17 +45,37 @@ fi
 
 mkdir -p "$PROOFS_DIR"
 
-echo -e "${BLUE}=== Step 4: Generate UltraHonk proof (bb) ===${NC}"
-bb prove \
-  --scheme ultra_honk \
-  --oracle_hash keccak \
-  --bytecode_path "$BYTECODE" \
-  --witness_path "$WITNESS" \
-  --output_path "$CIRCUIT_TARGET" \
-  --output_format binary \
-  --write_vk
+echo -e "${BLUE}=== Step 4: Detect bb version ===${NC}"
+BB_MAJOR=$(bb --version 2>/dev/null | head -1 | sed 's/[^0-9].*//' || echo 0)
+echo "  bb major version: $BB_MAJOR"
 
-echo -e "${BLUE}=== Step 5: Copy artifacts ===${NC}"
+echo -e "${BLUE}=== Step 5: Generate UltraHonk proof (bb) ===${NC}"
+if [ "$BB_MAJOR" -ge 5 ] 2>/dev/null; then
+  bb prove \
+    --scheme ultra_honk \
+    --oracle_hash keccak \
+    --bytecode_path "$BYTECODE" \
+    --witness_path "$WITNESS" \
+    --output_path "$CIRCUIT_TARGET" \
+    --output_format binary \
+    --write_vk
+else
+  bb prove \
+    --scheme ultra_honk \
+    --oracle_hash keccak \
+    --bytecode_path "$BYTECODE" \
+    --witness_path "$WITNESS" \
+    --output_path "$CIRCUIT_TARGET" \
+    --output_format bytes_and_fields
+  bb write_vk \
+    --scheme ultra_honk \
+    --oracle_hash keccak \
+    --bytecode_path "$BYTECODE" \
+    --output_path "$CIRCUIT_TARGET" \
+    --output_format bytes_and_fields
+fi
+
+echo -e "${BLUE}=== Step 6: Copy artifacts ===${NC}"
 
 # Flatten nested output dirs from bb (same as rs-soroban-ultrahonk)
 if [ -d "$CIRCUIT_TARGET/vk/vk" ]; then
@@ -69,13 +89,22 @@ cp "$CIRCUIT_TARGET/proof" "$PROOFS_DIR/compliance.proof"
 cp "$CIRCUIT_TARGET/public_inputs" "$PROOFS_DIR/public_inputs"
 cp "$CIRCUIT_TARGET/vk" "$PROOFS_DIR/vk"
 
-echo -e "${BLUE}=== Step 6: Local verification (bb verify) ===${NC}"
-bb verify \
-  --scheme ultra_honk \
-  --oracle_hash keccak \
-  -p "$CIRCUIT_TARGET/proof" \
-  -k "$CIRCUIT_TARGET/vk" \
-  -i "$CIRCUIT_TARGET/public_inputs"
+echo -e "${BLUE}=== Step 7: Local verification (bb verify) ===${NC}"
+if [ "$BB_MAJOR" -ge 5 ] 2>/dev/null; then
+  bb verify \
+    --scheme ultra_honk \
+    --oracle_hash keccak \
+    -p "$CIRCUIT_TARGET/proof" \
+    -k "$CIRCUIT_TARGET/vk" \
+    -i "$CIRCUIT_TARGET/public_inputs"
+else
+  bb verify \
+    --scheme ultra_honk \
+    --oracle_hash keccak \
+    --proof_path "$CIRCUIT_TARGET/proof" \
+    --verification_key_path "$CIRCUIT_TARGET/vk" \
+    --public_inputs_path "$CIRCUIT_TARGET/public_inputs"
+fi
 
 echo -e "\n${GREEN}Proof generated successfully!${NC}"
 echo "  Proof:         $PROOFS_DIR/compliance.proof"
