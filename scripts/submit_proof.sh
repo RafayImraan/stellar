@@ -34,8 +34,8 @@ stellar contract invoke \
   --send yes \
   -- \
   verify_compliance \
-  --proof-bytes-file-path "$PROOF" \
-  --public-inputs-file-path "$PUBLIC_INPUTS"
+  --proof_bytes-file-path "$PROOF" \
+  --public_inputs-file-path "$PUBLIC_INPUTS"
 
 echo -e "\n${GREEN}Compliance verified on-chain!${NC}"
 
