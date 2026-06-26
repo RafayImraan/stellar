@@ -8,7 +8,7 @@
 //
 // Uses std::sha256 for Merkle hashing (guarantees parity with JS tree builder).
 
-use std::sha256;
+use std::hash::sha256;
 
 /// Merkle tree depth — 2^8 = 256 leaves (matches off-chain builder).
 global TREE_DEPTH: u32 = 8;
