@@ -86,7 +86,7 @@ impl ComplianceVerifier {
     }
 
     /// Extract the nullifier field (32 bytes) from serialized public inputs.
-    fn extract_nullifier(public_inputs: &Bytes) -> Result<BytesN<32>, Error> {
+    fn extract_nullifier(env: &Env, public_inputs: &Bytes) -> Result<BytesN<32>, Error> {
         let expected_len = (NUM_PUBLIC_INPUTS * FIELD_BYTES) as usize;
         if public_inputs.len() as usize != expected_len {
             return Err(Error::InvalidPublicInputs);
@@ -95,7 +95,7 @@ impl ComplianceVerifier {
         let slice = public_inputs.slice(offset..offset + FIELD_BYTES);
         let mut arr = [0u8; 32];
         slice.copy_into_slice(&mut arr);
-        Ok(BytesN::from_array(arr))
+        Ok(BytesN::from_array(&env, &arr))
     }
 
     fn nullifiers(env: &Env) -> Map<BytesN<32>, bool> {
@@ -121,7 +121,7 @@ impl ComplianceVerifier {
             return Err(Error::ProofParseError);
         }
 
-        let nullifier = Self::extract_nullifier(&public_inputs)?;
+        let nullifier = Self::extract_nullifier(&env, &public_inputs)?;
 
         // Replay protection
         let mut map = Self::nullifiers(&env);
