@@ -60,11 +60,24 @@ impl ComplianceVerifier {
     }
 
     /// Initialize the contract with the UltraHonk verification key (immutable after deploy).
+    /// VK is stored as raw bytes without validation — parsing is deferred to
+    /// `verify_compliance()` so that CLI version differences don't block deployment.
     pub fn __constructor(env: Env, vk_bytes: Bytes) -> Result<(), Error> {
         if env.storage().instance().has(&Self::key_vk()) {
             return Err(Error::AlreadyInitialized);
         }
-        let _ = UltraHonkVerifier::new(&env, &vk_bytes).map_err(|_| Error::VkInvalid)?;
+        env.storage().instance().set(&Self::key_vk(), &vk_bytes);
+        let nullifiers: Map<BytesN<32>, bool> = Map::new(&env);
+        env.storage().instance().set(&Self::key_nullifiers(), &nullifiers);
+        Ok(())
+    }
+
+    /// Post-deploy VK initializer for CLI compatibility fallback.
+    /// Deploy without constructor args, then call this to set the VK.
+    pub fn set_vk(env: Env, vk_bytes: Bytes) -> Result<(), Error> {
+        if env.storage().instance().has(&Self::key_vk()) {
+            return Err(Error::AlreadyInitialized);
+        }
         env.storage().instance().set(&Self::key_vk(), &vk_bytes);
         let nullifiers: Map<BytesN<32>, bool> = Map::new(&env);
         env.storage().instance().set(&Self::key_nullifiers(), &nullifiers);

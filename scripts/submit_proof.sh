@@ -25,9 +25,14 @@ if [ -z "${CONTRACT_ID:-}" ]; then
   exit 1
 fi
 
+# Pre-compute hex versions for fallback approaches
+PROOF_HEX=$(xxd -p -c 1000000 "$PROOF" 2>/dev/null || od -An -tx1 "$PROOF" | tr -d ' \n')
+PUBLIC_INPUTS_HEX=$(xxd -p -c 1000000 "$PUBLIC_INPUTS" 2>/dev/null || od -An -tx1 "$PUBLIC_INPUTS" | tr -d ' \n')
+
 echo -e "${BLUE}Submitting proof to contract $CONTRACT_ID on $STELLAR_NETWORK_NAME...${NC}"
 
-stellar contract invoke \
+# Approach A: file-path args (stellar-cli 3.x)
+if stellar contract invoke \
   --id "$CONTRACT_ID" \
   --source "$STELLAR_SOURCE_ACCOUNT" \
   --network "$STELLAR_NETWORK_NAME" \
@@ -35,9 +40,27 @@ stellar contract invoke \
   -- \
   verify_compliance \
   --proof_bytes-file-path "$PROOF" \
-  --public_inputs-file-path "$PUBLIC_INPUTS"
-
-echo -e "\n${GREEN}Compliance verified on-chain!${NC}"
+  --public_inputs-file-path "$PUBLIC_INPUTS" 2>&1; then
+  echo -e "\n${GREEN}Compliance verified on-chain!${NC}"
+else
+  echo -e "${YELLOW}Approach A failed — trying approach B (hex args)...${NC}"
+  # Approach B: hex-encoded args
+  stellar contract invoke \
+    --id "$CONTRACT_ID" \
+    --source "$STELLAR_SOURCE_ACCOUNT" \
+    --network "$STELLAR_NETWORK_NAME" \
+    --send yes \
+    -- \
+    verify_compliance \
+    --proof_bytes "$PROOF_HEX" \
+    --public_inputs "$PUBLIC_INPUTS_HEX" || {
+    echo -e "${RED}Proof submission failed.${NC}"
+    echo -e "${YELLOW}Try manually:${NC}"
+    echo "  stellar contract invoke --id $CONTRACT_ID --source $STELLAR_SOURCE_ACCOUNT --network $STELLAR_NETWORK_NAME --send yes -- verify_compliance --proof_bytes-file-path $PROOF --public_inputs-file-path $PUBLIC_INPUTS"
+    exit 1
+  }
+  echo -e "\n${GREEN}Compliance verified on-chain!${NC}"
+fi
 
 # Query nullifier status (extract from public inputs — last 32 bytes of 160-byte file)
 NULLIFIER_HEX=""
