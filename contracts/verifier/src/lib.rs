@@ -10,7 +10,7 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, symbol_short, Bytes, BytesN, Env, Map,
     Symbol,
 };
-use ultrahonk_soroban_verifier::{verifier::VerifyError, SorobanEc, UltraHonkVerifier};
+use ultrahonk_soroban_verifier::UltraHonkVerifier;
 
 /// Number of public inputs in the compliance circuit (must match circuit order).
 const NUM_PUBLIC_INPUTS: u32 = 5;
@@ -79,7 +79,7 @@ impl ComplianceVerifier {
     }
 
     /// Extract the nullifier field (32 bytes) from serialized public inputs.
-    fn extract_nullifier(public_inputs: &Bytes) -> Result<BytesN<32>, Error> {
+    fn extract_nullifier(env: &Env, public_inputs: &Bytes) -> Result<BytesN<32>, Error> {
         let expected_len = (NUM_PUBLIC_INPUTS * FIELD_BYTES) as usize;
         if public_inputs.len() as usize != expected_len {
             return Err(Error::InvalidPublicInputs);
@@ -88,7 +88,7 @@ impl ComplianceVerifier {
         let slice = public_inputs.slice(offset..offset + FIELD_BYTES);
         let mut arr = [0u8; 32];
         slice.copy_into_slice(&mut arr);
-        Ok(BytesN::from_array(arr))
+        Ok(BytesN::from_array(env, &arr))
     }
 
     fn nullifiers(env: &Env) -> Map<BytesN<32>, bool> {
@@ -110,7 +110,7 @@ impl ComplianceVerifier {
         proof_bytes: Bytes,
         public_inputs: Bytes,
     ) -> Result<bool, Error> {
-        let nullifier = Self::extract_nullifier(&public_inputs)?;
+        let nullifier = Self::extract_nullifier(&env, &public_inputs)?;
 
         let mut map = Self::nullifiers(&env);
         if map.get(nullifier.clone()).unwrap_or(false) {
