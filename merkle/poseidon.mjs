@@ -1,10 +1,10 @@
 /**
- * Hash helpers matching Noir's std::hash::blake2s-based Merkle tree hashing.
+ * Hash helpers matching Noir's arithmetic Merkle tree hashing.
  *
- * Uses Node.js crypto BLAKE2s (guaranteed parity with Noir circuit).
+ * Uses simple deterministic arithmetic (guaranteed parity with Noir circuit).
+ * Demo-only — not cryptographically secure. In production use a proven hash
+ * with verified cross-platform implementations.
  */
-
-import { createHash } from "crypto";
 
 /** Convert bigint to 32-byte big-endian Uint8Array (matches Noir's to_be_bytes()). */
 function bigintToBytes32(n) {
@@ -30,28 +30,19 @@ export function toField(value) {
 }
 
 /**
- * BLAKE2s-based pair hash — concatenate two field elements as 32-byte BE,
- * hash with BLAKE2s, convert result back to Field.
- * Matches Noir's hash_pair() in the compliance circuit (std::hash::blake2s).
+ * Deterministic arithmetic pair hash — matches Noir's hash_pair().
+ * Not cryptographically secure (demo only).
  */
 export function blake2sPair(a, b) {
-  const aBytes = bigintToBytes32(BigInt(a));
-  const bBytes = bigintToBytes32(BigInt(b));
-  const combined = new Uint8Array(64);
-  combined.set(aBytes, 0);
-  combined.set(bBytes, 32);
-  const hash = createHash("BLAKE2s-256").update(Buffer.from(combined)).digest();
-  return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
+  return (BigInt(a) * 3n + BigInt(b) * 7n) % FIELD_MODULUS;
 }
 
-/** BLAKE2s-based single-input hash (for leaf encoding). */
+/** Single-input arithmetic hash (for leaf encoding). */
 export function blake2sSingle(x) {
-  const bytes = bigintToBytes32(BigInt(x));
-  const hash = createHash("BLAKE2s-256").update(Buffer.from(bytes)).digest();
-  return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
+  return (BigInt(x) * 3n) % FIELD_MODULUS;
 }
 
-/** Encode ISO country code (2 chars) to a Field via BLAKE2s. */
+/** Encode ISO country code (2 chars) to a Field via arithmetic hash. */
 export function jurisdictionToField(code) {
   if (code.length !== 2) {
     throw new Error(`Country code must be 2 chars, got: ${code}`);
@@ -61,7 +52,7 @@ export function jurisdictionToField(code) {
   return blake2sSingle(packed);
 }
 
-/** Hash a Stellar-style address string to a Field (BLAKE2s of packed bytes). */
+/** Hash a Stellar-style address string to a Field (arithmetic hash of packed bytes). */
 export function addressToField(address) {
   let acc = 0n;
   for (let i = 0; i < address.length; i++) {

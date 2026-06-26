@@ -2,7 +2,7 @@
 /**
  * build_tree.js — Merkle tree builder for ZK Remittance Compliance
  *
- * Builds two depth-8 BLAKE2s Merkle trees:
+ * Builds two depth-8 arithmetic-hash Merkle trees:
  *   1. Sanctions list (sorted) — generates exclusion witnesses for non-members
  *   2. Allowed jurisdictions — generates membership witnesses
  *
