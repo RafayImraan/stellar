@@ -3,14 +3,15 @@
 //! ZK Remittance Compliance Verifier — Soroban Smart Contract
 //!
 //! Verifies UltraHonk ZK proofs from the compliance Noir circuit and tracks
-//! nullifiers to prevent proof replay. Based on rs-soroban-ultrahonk PR#26
-//! (bb v5 / protocol 25 compatible).
+//! nullifiers to prevent proof replay. Uses the main branch of
+//! rs-soroban-ultrahonk (1760-byte VK, soroban-sdk 26.0.1).
+//! VK conversion from bb v5 (1888 bytes) is handled off-chain.
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, symbol_short, Bytes, BytesN, Env, Map,
     Symbol,
 };
-use ultrahonk_soroban_verifier::UltraHonkVerifier;
+use ultrahonk_soroban_verifier::{UltraHonkVerifier, VkLoadError};
 
 /// Number of public inputs in the compliance circuit (must match circuit order).
 const NUM_PUBLIC_INPUTS: u32 = 5;
@@ -126,7 +127,7 @@ impl ComplianceVerifier {
         let verifier = UltraHonkVerifier::new(&env, &vk_bytes).map_err(|_| Error::VkInvalid)?;
 
         verifier
-            .verify(&proof_bytes, &public_inputs)
+            .verify(&env, &proof_bytes, &public_inputs)
             .map_err(|_| Error::InvalidProof)?;
 
         map.set(nullifier.clone(), true);

@@ -8,14 +8,14 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-soroban-sdk = { version = "25.3.0", features = ["alloc"] }
-# rs-soroban-ultrahonk PR#26 — adds bb v5 / protocol 25 support for VK (1888 bytes)
-# Uses soroban-sdk 25.3.0 (must match our SDK version).
-# See: https://github.com/NethermindEth/rs-soroban-ultrahonk/pull/26
-ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", rev = "eae28b3eb654369988e10dbc2e2fec280dd8561d", package = "ultrahonk_soroban_verifier", default-features = false }
+soroban-sdk = { version = "26.0.1", features = ["alloc"] }
+# rs-soroban-ultrahonk main branch — expects 1760-byte VK (4×u64 + 27 G1 points),
+# soroban-sdk 26.0.1. Proof format: 456 × 32 = 14592 bytes, 128-byte limb-split G1.
+# VK conversion (1888→1760) is handled off-chain by scripts/convert_vk.js.
+ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", package = "ultrahonk_soroban_verifier", default-features = false }
 
 [dev-dependencies]
-soroban-sdk = { version = "25.3.0", features = ["testutils", "alloc"] }
+soroban-sdk = { version = "26.0.1", features = ["testutils", "alloc"] }
 
 [profile.release]
 opt-level = "z"

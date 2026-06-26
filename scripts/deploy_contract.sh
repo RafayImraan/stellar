@@ -13,14 +13,17 @@ if [ ! -f "$VK_PATH" ]; then
   bash "$SCRIPT_DIR/generate_proof.sh"
 fi
 
-# ── VK format check ────────────────────────────────────────────────────────
-# Now using rs-soroban-ultrahonk PR#26 which supports bb v5 protocol 25 VK
-# format (1888 bytes = 3×Fr header + 28 G1 points).
+# ── VK format check + conversion ──────────────────────────────────────────
+# Main branch verifier expects 1760-byte VK (4×u64 header + 27 G1 points).
+# bb v5 produces 1888 bytes (3×Fr header + 28 G1). Convert if needed.
 VK_BYTES=$(wc -c < "$VK_PATH" 2>/dev/null || echo 0)
 if [ "$VK_BYTES" = "1888" ]; then
-  echo -e "${GREEN}VK is 1888 bytes (bb v5 protocol 25 — compatible with PR#26).${NC}"
+  echo -e "${YELLOW}VK is 1888 bytes (bb v5) — converting to 1760 bytes for main branch verifier...${NC}"
+  node "$SCRIPT_DIR/convert_vk.js" "$VK_PATH"
+  VK_BYTES=$(wc -c < "$VK_PATH" 2>/dev/null || echo 0)
+  echo -e "${GREEN}VK converted to $VK_BYTES bytes.${NC}"
 elif [ "$VK_BYTES" = "1760" ]; then
-  echo -e "${YELLOW}VK is 1760 bytes (old format). Install latest bb: bbup${NC}"
+  echo -e "${GREEN}VK is 1760 bytes (compatible with main branch verifier).${NC}"
 fi
 
 echo -e "${BLUE}=== Building Soroban contract ===${NC}"
