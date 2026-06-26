@@ -15,16 +15,16 @@ global TREE_DEPTH: u32 = 8;
 
 /// Compare two field elements as integers (byte-by-byte, works in all Noir 1.0+).
 fn field_lt(a: Field, b: Field) -> bool {
-    let a_bytes = a.to_be_bytes(32);
-    let b_bytes = b.to_be_bytes(32);
-    let mut i = 0;
+    let a_bytes: [u8; 32] = a.to_be_bytes();
+    let b_bytes: [u8; 32] = b.to_be_bytes();
     let mut result = false;
-    while i < 32 {
-        if a_bytes[i] != b_bytes[i] {
-            result = a_bytes[i] < b_bytes[i];
-            i = 32;
-        } else {
-            i = i + 1;
+    let mut decided = false;
+    for i in 0..32 {
+        if !decided {
+            if a_bytes[i] != b_bytes[i] {
+                result = a_bytes[i] < b_bytes[i];
+                decided = true;
+            }
         }
     };
     result
