@@ -4,11 +4,11 @@
 //   1. Sender is NOT on the sanctions Merkle tree (sorted-tree exclusion proof)
 //   2. Transfer amount is within [min_threshold, max_threshold]
 //   3. Jurisdiction is in the allowed jurisdictions Merkle tree
-//   4. Nullifier = Poseidon(secret, nonce) prevents proof replay
+//   4. Nullifier = SHA256(secret, nonce) prevents proof replay
 //
-// Compatible with nargo 1.0.0-beta.22+ (uses bool for Merkle path direction).
+// Uses std::sha256 for Merkle hashing (guarantees parity with JS tree builder).
 
-use poseidon::poseidon::bn254::hash_2;
+use std::sha256;
 
 /// Merkle tree depth — 2^8 = 256 leaves (matches off-chain builder).
 global TREE_DEPTH: u32 = 8;
@@ -30,6 +30,20 @@ fn field_lt(a: Field, b: Field) -> bool {
     result
 }
 
+/// SHA256-based pair hash — byte-concatenate two field elements and hash.
+/// Guarantees parity with Node.js crypto.createHash('sha256') in build_tree.js.
+fn hash_pair(left: Field, right: Field) -> Field {
+    let mut input: [u8; 64] = [0; 64];
+    let left_bytes: [u8; 32] = left.to_be_bytes();
+    let right_bytes: [u8; 32] = right.to_be_bytes();
+    for i in 0..32 {
+        input[i] = left_bytes[i];
+        input[i + 32] = right_bytes[i];
+    }
+    let hash: [u8; 32] = sha256(input);
+    Field::from_be_bytes(hash)
+}
+
 /// Reconstruct a Merkle root from a leaf, sibling path, and left/right indicators.
 /// `indices[i] == false` means the current node is the left child at level i.
 fn compute_merkle_root<let N: u32>(
@@ -40,9 +54,9 @@ fn compute_merkle_root<let N: u32>(
     let mut current = leaf;
     for i in 0..N {
         current = if !indices[i] {
-            hash_2([siblings[i], current])
+            hash_pair(siblings[i], current)
         } else {
-            hash_2([current, siblings[i]])
+            hash_pair(current, siblings[i])
         };
     }
     current
@@ -73,7 +87,7 @@ fn main(
     jurisdiction_indices: [bool; TREE_DEPTH],
 ) {
     // ── 1. Nullifier binding (anti-replay) ────────────────────────────────
-    let computed_nullifier = hash_2([secret, nonce]);
+    let computed_nullifier = hash_pair(secret, nonce);
     assert(computed_nullifier == nullifier);
 
     // ── 2. Amount range proof ─────────────────────────────────────────────

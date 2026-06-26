@@ -1,19 +1,15 @@
 /**
- * Poseidon BN254 hash helpers matching Noir's poseidon::bn254::{hash_1, hash_2}.
+ * Hash helpers matching Noir's std::sha256-based Merkle tree hashing.
  *
- * Uses circomlibjs Poseidon (BN254, t=3) which aligns with Barretenberg/Noir
- * field hashing for 1- and 2-element inputs.
+ * Uses Node.js crypto SHA256 (guaranteed parity with Noir circuit).
  */
 
-import { buildPoseidon } from "circomlibjs";
+import { createHash } from "crypto";
 
-let _poseidon = null;
-
-async function getPoseidon() {
-  if (!_poseidon) {
-    _poseidon = await buildPoseidon();
-  }
-  return _poseidon;
+/** Convert bigint to 32-byte big-endian Uint8Array (matches Noir's to_be_bytes()). */
+function bigintToBytes32(n) {
+  const hex = n.toString(16).padStart(64, "0");
+  return new Uint8Array(Buffer.from(hex, "hex"));
 }
 
 /** Convert bigint to decimal string (Noir Field literal format). */
@@ -33,38 +29,45 @@ export function toField(value) {
   return v;
 }
 
-/** hash_1([x]) — single input Poseidon hash. */
-export async function hash1(x) {
-  const poseidon = await getPoseidon();
-  const out = poseidon([BigInt(x)]);
-  return toField(poseidon.F.toObject(out));
+/**
+ * SHA256-based pair hash — concatenate two field elements as 32-byte BE,
+ * hash with SHA256, convert result back to Field.
+ * Matches Noir's hash_pair() in the compliance circuit.
+ */
+export function sha256Pair(a, b) {
+  const aBytes = bigintToBytes32(BigInt(a));
+  const bBytes = bigintToBytes32(BigInt(b));
+  const combined = new Uint8Array(64);
+  combined.set(aBytes, 0);
+  combined.set(bBytes, 32);
+  const hash = createHash("sha256").update(Buffer.from(combined)).digest();
+  return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
 }
 
-/** hash_2([a, b]) — two-input Poseidon hash (Merkle parent). */
-export async function hash2(a, b) {
-  const poseidon = await getPoseidon();
-  const out = poseidon([BigInt(a), BigInt(b)]);
-  return toField(poseidon.F.toObject(out));
+/** SHA256-based single-input hash (for leaf encoding). */
+export function sha256Single(x) {
+  const bytes = bigintToBytes32(BigInt(x));
+  const hash = createHash("sha256").update(Buffer.from(bytes)).digest();
+  return BigInt("0x" + hash.toString("hex")) % FIELD_MODULUS;
 }
 
-/** Encode ISO country code (2 chars) to a Field via Poseidon hash. */
-export async function jurisdictionToField(code) {
+/** Encode ISO country code (2 chars) to a Field via SHA256. */
+export function jurisdictionToField(code) {
   if (code.length !== 2) {
     throw new Error(`Country code must be 2 chars, got: ${code}`);
   }
   const packed =
     (BigInt(code.charCodeAt(0)) << 8n) | BigInt(code.charCodeAt(1));
-  return hash1(packed);
+  return sha256Single(packed);
 }
 
-/** Hash a Stellar-style address string to a Field (demo: hash the UTF-8 bytes). */
-export async function addressToField(address) {
-  // Pack address into field chunks and hash — simplified for demo
+/** Hash a Stellar-style address string to a Field (SHA256 of packed bytes). */
+export function addressToField(address) {
   let acc = 0n;
   for (let i = 0; i < address.length; i++) {
     acc = (acc * 256n + BigInt(address.charCodeAt(i))) % (2n ** 254n);
   }
-  return hash1(acc);
+  return sha256Single(acc);
 }
 
 /** BN254 field modulus (for comparisons). */

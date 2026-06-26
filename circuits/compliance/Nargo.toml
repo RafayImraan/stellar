@@ -6,4 +6,4 @@ compiler_version = ">=1.0.0"
 description = "ZK remittance compliance circuit — sanctions exclusion, amount range, jurisdiction membership"
 
 [dependencies]
-poseidon = { git = "https://github.com/noir-lang/poseidon", tag = "v0.3.0" }
+# No external dependencies — using std::sha256 for Merkle hashing (guarantees JS parity)

@@ -9,12 +9,12 @@
  * Outputs merkle/merkle_data.json for proof generation scripts.
  */
 
-import { writeFileSync, mkdirSync } from "fs";
+import { writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import {
-  hash1,
-  hash2,
+  sha256Pair,
+  sha256Single,
   hexToField,
   fieldToDecimal,
   jurisdictionToField,
@@ -61,7 +61,7 @@ const ALLOWED_JURISDICTIONS = ["PK", "US", "GB", "AE", "SA", "DE", "FR", "CA", "
  * Build a full binary Merkle tree from leaves (padded to LEAF_COUNT).
  * Returns { root, layers, leaves }.
  */
-async function buildMerkleTree(rawLeaves) {
+function buildMerkleTree(rawLeaves) {
   const leaves = new Array(LEAF_COUNT).fill(0n);
   for (let i = 0; i < rawLeaves.length && i < LEAF_COUNT; i++) {
     leaves[i] = assertField(rawLeaves[i]);
@@ -73,7 +73,7 @@ async function buildMerkleTree(rawLeaves) {
   for (let d = 0; d < TREE_DEPTH; d++) {
     const next = [];
     for (let i = 0; i < current.length; i += 2) {
-      next.push(await hash2(current[i], current[i + 1]));
+      next.push(sha256Pair(current[i], current[i + 1]));
     }
     layers.push(next);
     current = next;
@@ -106,7 +106,7 @@ function getMerkleProof(layers, leafIndex) {
 /**
  * Build sorted sanctions tree: sort unique sanctioned hashes, pad with zeros.
  */
-async function buildSanctionsTree() {
+function buildSanctionsTree() {
   const sanctioned = SANCTIONED_HEX.map(hexToField).sort((a, b) =>
     a < b ? -1 : a > b ? 1 : 0
   );
@@ -157,16 +157,16 @@ function formatProof(layers, leafIndex) {
   };
 }
 
-async function main() {
+function main() {
   console.log("Building Merkle trees for ZK Remittance Compliance...\n");
 
   // ── Sanctions tree ──────────────────────────────────────────────────────
-  const sanctions = await buildSanctionsTree();
+  const sanctions = buildSanctionsTree();
   console.log(`Sanctions root: ${fieldToDecimal(sanctions.root)}`);
 
   // Demo compliant sender (NOT in sanctions list)
   const demoAddress = "GCKFBEIYTKP6RQBQA5H4G2H5Q4H4G2H5Q4H4G2H5Q4H4G2H5Q4DEMO01";
-  const senderHash = await addressToField(demoAddress);
+  const senderHash = addressToField(demoAddress);
   console.log(`Demo sender hash: ${fieldToDecimal(senderHash)}`);
 
   const exclusion = findExclusionWitness(sanctions.leaves, senderHash);
@@ -174,21 +174,21 @@ async function main() {
   const rightProof = formatProof(sanctions.layers, exclusion.rightIdx);
 
   // ── Jurisdictions tree ──────────────────────────────────────────────────
-  const jurisdictionFields = await Promise.all(
-    ALLOWED_JURISDICTIONS.map((code) => jurisdictionToField(code))
+  const jurisdictionFields = ALLOWED_JURISDICTIONS.map((code) =>
+    jurisdictionToField(code)
   );
-  const jurisTree = await buildMerkleTree(jurisdictionFields);
+  const jurisTree = buildMerkleTree(jurisdictionFields);
   console.log(`Jurisdictions root: ${fieldToDecimal(jurisTree.root)}`);
 
   const demoJurisdiction = "PK";
-  const demoJurisField = await jurisdictionToField(demoJurisdiction);
+  const demoJurisField = jurisdictionToField(demoJurisdiction);
   const jurisIdx = jurisTree.leaves.findIndex((v) => v === demoJurisField);
   const jurisProof = formatProof(jurisTree.layers, jurisIdx);
 
   // ── Demo secrets ────────────────────────────────────────────────────────
   const secret = 1234567890123456789012345678901234567890123456789012345678901234n;
   const nonce = 9876543210987654321098765432109876543210987654321098765432109876n;
-  const nullifier = await hash2(secret, nonce);
+  const nullifier = sha256Pair(secret, nonce);
 
   const output = {
     tree_depth: TREE_DEPTH,
@@ -241,7 +241,4 @@ async function main() {
   return output;
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main();
