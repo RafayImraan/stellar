@@ -73,9 +73,9 @@ echo -e "${BLUE}=== Step 6: Local verification (bb verify) ===${NC}"
 bb verify \
   --scheme ultra_honk \
   --oracle_hash keccak \
-  --proof_path "$CIRCUIT_TARGET/proof" \
-  --verification_key_path "$CIRCUIT_TARGET/vk" \
-  --public_inputs_path "$CIRCUIT_TARGET/public_inputs"
+  -p "$CIRCUIT_TARGET/proof" \
+  -k "$CIRCUIT_TARGET/vk" \
+  -i "$CIRCUIT_TARGET/public_inputs"
 
 echo -e "\n${GREEN}Proof generated successfully!${NC}"
 echo "  Proof:         $PROOFS_DIR/compliance.proof"

@@ -83,9 +83,9 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 	$(BB) verify \
 		--scheme ultra_honk \
 		--oracle_hash keccak \
-		--proof_path "$(CIRCUIT_TARGET)/proof" \
-		--verification_key_path "$(CIRCUIT_TARGET)/vk" \
-		--public_inputs_path "$(CIRCUIT_TARGET)/public_inputs"
+		-p "$(CIRCUIT_TARGET)/proof" \
+		-k "$(CIRCUIT_TARGET)/vk" \
+		-i "$(CIRCUIT_TARGET)/public_inputs"
 	@echo ""
 	@echo "Proof generated successfully!"
 	@echo "  Proof:         $(PROOF_FILE)"
