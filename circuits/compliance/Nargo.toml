@@ -6,5 +6,4 @@ compiler_version = ">=1.0.0"
 description = "ZK remittance compliance circuit — sanctions exclusion, amount range, jurisdiction membership"
 
 [dependencies]
-# v0.2.6 is incompatible with nargo 1.0.0-beta.22+; use master branch
-poseidon = { git = "https://github.com/noir-lang/poseidon", branch = "master" }
+poseidon = { git = "https://github.com/noir-lang/poseidon", tag = "v0.3.0" }
