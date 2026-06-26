@@ -47,9 +47,9 @@ fn compute_merkle_root<let N: u32>(
     let mut current = leaf;
     for i in 0..N {
         current = if !indices[i] {
-            hash_pair(siblings[i], current)
-        } else {
             hash_pair(current, siblings[i])
+        } else {
+            hash_pair(siblings[i], current)
         };
     }
     current
