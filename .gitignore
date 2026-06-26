@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+target/
+**/target/
+
+# Noir / Barretenberg artifacts
+circuits/*/target/
+proofs/
+
+# Environment & secrets
+.env
+.env.local
+*.secret
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Merkle generated (regenerate via build_tree.js)
+merkle/merkle_data.json
+
+# Auto-generated
+circuits/compliance/Prover.toml
+
+# Stellar
+*.wasm
+.contract_id

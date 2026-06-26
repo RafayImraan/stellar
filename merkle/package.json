@@ -1,0 +1,12 @@
+{
+  "name": "zk-remittance-merkle",
+  "version": "1.0.0",
+  "description": "Merkle tree builder for ZK remittance compliance proofs",
+  "type": "module",
+  "scripts": {
+    "build": "node build_tree.js"
+  },
+  "dependencies": {
+    "circomlibjs": "^0.1.7"
+  }
+}

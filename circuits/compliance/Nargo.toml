@@ -1,0 +1,9 @@
+[package]
+name = "compliance"
+type = "bin"
+authors = ["ZK Remittance Team"]
+compiler_version = ">=1.0.0"
+description = "ZK remittance compliance circuit — sanctions exclusion, amount range, jurisdiction membership"
+
+[dependencies]
+poseidon = { tag = "v0.2.6", git = "https://github.com/noir-lang/poseidon" }

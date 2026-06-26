@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZK Remittance Compliance — Stellar</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">◈</span>
+      <span>ZK Remittance</span>
+    </div>
+    <button id="connectWallet" class="btn btn-outline">Connect Freighter</button>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Private Compliance for Cross-Border Remittance</h1>
+      <p class="subtitle">
+        Prove you're compliant for remittance — without revealing your identity, exact amount, or location.
+        Verified on Stellar Soroban via zero-knowledge proofs.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Generate Proof &amp; Verify On-Chain</h2>
+      <p class="hint">Private fields stay in your browser. Only the ZK proof is submitted to Stellar.</p>
+
+      <form id="complianceForm">
+        <div class="field">
+          <label for="address">Stellar Wallet Address <span class="public">public</span></label>
+          <input type="text" id="address" placeholder="G..." required />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="amount">Amount (USD cents) <span class="private">private</span></label>
+            <input type="number" id="amount" placeholder="50000 = $500.00" min="1" required />
+          </div>
+          <div class="field">
+            <label for="jurisdiction">Country Code <span class="private">private</span></label>
+            <select id="jurisdiction" required>
+              <option value="PK">PK — Pakistan</option>
+              <option value="US">US — United States</option>
+              <option value="GB">GB — United Kingdom</option>
+              <option value="AE">AE — UAE</option>
+              <option value="SA">SA — Saudi Arabia</option>
+              <option value="DE">DE — Germany</option>
+              <option value="FR">FR — France</option>
+              <option value="CA">CA — Canada</option>
+              <option value="AU">AU — Australia</option>
+              <option value="SG">SG — Singapore</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="contractId">Verifier Contract ID</label>
+          <input type="text" id="contractId" placeholder="C... (from deploy_contract.sh)" />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="proofFile">Proof file (.proof)</label>
+            <input type="file" id="proofFile" accept="*" />
+          </div>
+          <div class="field">
+            <label for="publicInputsFile">Public inputs file</label>
+            <input type="file" id="publicInputsFile" accept="*" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="loadDemo" class="btn btn-secondary">Load Demo Artifacts</button>
+          <button type="submit" id="submitBtn" class="btn btn-primary" disabled>
+            Generate Proof &amp; Verify
+          </button>
+        </div>
+      </form>
+
+      <div id="status" class="status hidden"></div>
+      <div id="result" class="result hidden"></div>
+    </section>
+
+    <section class="card how-it-works">
+      <h2>How It Works</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="step-num">1</span>
+          <div>
+            <strong>You hold private data</strong>
+            <p>Your wallet hash, transfer amount, and country never leave your device in plaintext.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <div>
+            <strong>ZK circuit proves compliance</strong>
+            <p>A Noir circuit proves: not on sanctions list, amount within legal limits, jurisdiction allowed — all at once.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <div>
+            <strong>Stellar verifies the proof</strong>
+            <p>The Soroban smart contract verifies the UltraHonk proof and records a nullifier to prevent replay.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <pre>
+┌─────────────┐     ZK Proof      ┌──────────────────┐
+│  Your Data  │ ───────────────►  │ Soroban Verifier │
+│  (private)  │   (public only:   │   on Stellar     │
+│             │    roots, bounds, │                  │
+│  • amount   │    nullifier)     │  ✅ Compliant    │
+│  • country  │                   └──────────────────┘
+│  • identity │
+└─────────────┘
+        </pre>
+      </div>
+
+      <p class="note">
+        <strong>Demo note:</strong> Full proof generation runs off-chain via <code>nargo</code> + <code>bb</code> CLI
+        (see README). The web UI submits pre-generated proofs to the on-chain verifier via Freighter.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>ZK Remittance Compliance Layer — Stellar Hackathon Project</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
