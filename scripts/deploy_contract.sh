@@ -45,7 +45,7 @@ CONTRACT_ID=$(stellar contract deploy \
   --source "$STELLAR_SOURCE_ACCOUNT" \
   --network "$STELLAR_NETWORK_NAME" \
   -- \
-  --vk_bytes-file-path "$VK_PATH")
+  --vk-bytes-file-path "$VK_PATH")
 
 echo "CONTRACT_ID=$CONTRACT_ID" > "$ROOT_DIR/.env"
 echo "STELLAR_NETWORK_NAME=$STELLAR_NETWORK_NAME" >> "$ROOT_DIR/.env"
