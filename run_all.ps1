@@ -70,15 +70,17 @@ function CircuitProof {
 
     New-Item -ItemType Directory -Force -Path $ProofsDir | Out-Null
 
-    Step "Generating UltraHonk proof"
+    Step "Generating UltraHonk proof + VK (bb v5 --write_vk)"
     bb prove --scheme ultra_honk --oracle_hash keccak `
         --bytecode_path $Bytecode --witness_path $Witness `
-        --output_path $CircuitTarget --output_format bytes_and_fields
+        --output_path $CircuitTarget --output_format binary --write_vk
 
-    Step "Generating verification key"
-    bb write_vk --scheme ultra_honk --oracle_hash keccak `
-        --bytecode_path $Bytecode --output_path $CircuitTarget `
-        --output_format bytes_and_fields
+    # Flatten nested output dirs from bb (same as rs-soroban-ultrahonk)
+    if (Test-Path "$CircuitTarget/vk/vk") {
+        Move-Item "$CircuitTarget/vk/vk" "$CircuitTarget/vk.tmp" -Force
+        Remove-Item "$CircuitTarget/vk" -Recurse -Force
+        Move-Item "$CircuitTarget/vk.tmp" "$CircuitTarget/vk" -Force
+    }
 
     Copy-Item "$CircuitTarget\proof" $ProofFile -Force
     Copy-Item "$CircuitTarget\public_inputs" $PublicInputsFile -Force
@@ -86,9 +88,7 @@ function CircuitProof {
 
     Step "Local verification"
     bb verify --scheme ultra_honk --oracle_hash keccak `
-        --proof_path "$CircuitTarget\proof" `
-        --verification_key_path "$CircuitTarget\vk" `
-        --public_inputs_path "$CircuitTarget\public_inputs"
+        -p "$CircuitTarget\proof" -k "$CircuitTarget\vk" -i "$CircuitTarget\public_inputs"
 
     Write-Host "`nProof generated successfully!" -ForegroundColor Green
     Write-Host "  Proof:         $ProofFile"

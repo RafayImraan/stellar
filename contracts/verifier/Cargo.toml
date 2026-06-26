@@ -9,6 +9,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = { version = "26.0.1", features = ["alloc"] }
+# rs-soroban-ultrahonk — UltraHonk verifier for Soroban
+# Main branch expects VK format from bb < v5 (1760 bytes).
+# For bb v5+ (protocol 25, 1888-byte VK), use PR #26 branch:
+#   rev = "theahaco/feat/bb3-nozk-verifier"
+# See: https://github.com/NethermindEth/rs-soroban-ultrahonk/pull/26
 ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", package = "ultrahonk_soroban_verifier", default-features = false }
 
 [dev-dependencies]

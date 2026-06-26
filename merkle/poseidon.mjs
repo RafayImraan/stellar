@@ -1,9 +1,8 @@
 /**
- * Hash helpers matching Noir's arithmetic Merkle tree hashing.
+ * Arithmetic hash helpers — guaranteed parity with Noir's hash_pair().
  *
- * Uses simple deterministic arithmetic (guaranteed parity with Noir circuit).
  * Demo-only — not cryptographically secure. In production use a proven hash
- * with verified cross-platform implementations.
+ * with verified cross-platform implementations (e.g. Poseidon via Noir std).
  */
 
 /** Convert bigint to 32-byte big-endian Uint8Array (matches Noir's to_be_bytes()). */
@@ -32,13 +31,14 @@ export function toField(value) {
 /**
  * Deterministic arithmetic pair hash — matches Noir's hash_pair().
  * Not cryptographically secure (demo only).
+ * Named `hashPair` for clarity (this is NOT Blake2s despite the old name).
  */
-export function blake2sPair(a, b) {
+export function hashPair(a, b) {
   return (BigInt(a) * 3n + BigInt(b) * 7n) % FIELD_MODULUS;
 }
 
 /** Single-input arithmetic hash (for leaf encoding). */
-export function blake2sSingle(x) {
+export function hashSingle(x) {
   return (BigInt(x) * 3n) % FIELD_MODULUS;
 }
 
@@ -49,7 +49,7 @@ export function jurisdictionToField(code) {
   }
   const packed =
     (BigInt(code.charCodeAt(0)) << 8n) | BigInt(code.charCodeAt(1));
-  return blake2sSingle(packed);
+  return hashSingle(packed);
 }
 
 /** Hash a Stellar-style address string to a Field (arithmetic hash of packed bytes). */
@@ -58,7 +58,7 @@ export function addressToField(address) {
   for (let i = 0; i < address.length; i++) {
     acc = (acc * 256n + BigInt(address.charCodeAt(i))) % (2n ** 254n);
   }
-  return blake2sSingle(acc);
+  return hashSingle(acc);
 }
 
 /** BN254 field modulus (for comparisons). */

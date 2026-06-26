@@ -13,8 +13,8 @@ import { writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import {
-  blake2sPair,
-  blake2sSingle,
+  hashPair,
+  hashSingle,
   hexToField,
   fieldToDecimal,
   jurisdictionToField,
@@ -73,7 +73,7 @@ function buildMerkleTree(rawLeaves) {
   for (let d = 0; d < TREE_DEPTH; d++) {
     const next = [];
     for (let i = 0; i < current.length; i += 2) {
-      next.push(blake2sPair(current[i], current[i + 1]));
+      next.push(hashPair(current[i], current[i + 1]));
     }
     layers.push(next);
     current = next;
@@ -188,7 +188,7 @@ function main() {
   // ── Demo secrets ────────────────────────────────────────────────────────
   const secret = 1234567890123456789012345678901234567890123456789012345678901234n;
   const nonce = 9876543210987654321098765432109876543210987654321098765432109876n;
-  const nullifier = blake2sPair(secret, nonce);
+  const nullifier = hashPair(secret, nonce);
 
   const output = {
     tree_depth: TREE_DEPTH,

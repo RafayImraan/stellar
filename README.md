@@ -60,7 +60,7 @@ sequenceDiagram
 | Proof System | UltraHonk (Barretenberg `bb`) |
 | On-chain Verifier | Stellar Soroban (Rust) via [rs-soroban-ultrahonk](https://github.com/NethermindEth/rs-soroban-ultrahonk) |
 | Network | Stellar Testnet |
-| Merkle Trees | Node.js + Poseidon (circomlibjs) |
+| Merkle Trees | Node.js + arithmetic hash (guaranteed Noir parity) |
 | Frontend | Vanilla HTML/JS + Freighter wallet |
 
 ## Architecture
@@ -85,7 +85,7 @@ zk-remittance/
 | Not on sanctions list | Sorted Merkle **exclusion** proof (adjacent neighbors) | sender hash, neighbor paths | sanctions root |
 | Amount in range | `min ≤ amount ≤ max` | amount | min/max thresholds |
 | Jurisdiction allowed | Merkle **membership** proof | jurisdiction hash, path | jurisdictions root |
-| No replay | `nullifier = Poseidon(secret, nonce)` | secret, nonce | nullifier |
+| No replay | `nullifier = hash_pair(secret, nonce)` | secret, nonce | nullifier |
 
 ### What's hidden
 
@@ -217,7 +217,7 @@ We are **honest** about demo simplifications:
 | Sanctions list | 20 hardcoded fake hashes | Real OFAC/sanctions feed, frequent updates |
 | Jurisdictions | 10 hardcoded ISO codes | Dynamic policy per corridor/regulator |
 | Address hashing | Simplified Poseidon hash of address string | Standardized identity commitment scheme |
-| Poseidon parity | circomlibjs (JS) vs Noir poseidon crate | Verified hash parity tests in CI |
+| Hash parity | `hashPair` in JS vs `hash_pair` in Noir | Arithmetic hash (guaranteed parity) — swap for Poseidon in production |
 | Proof generation | Off-chain CLI only (not in-browser WASM) | Browser prover or prover service |
 | Sorted Merkle exclusion | Correct pattern, static tree | Incremental updates, larger depth |
 | `nargo prove` | Not available in Noir 1.0 | Use `bb prove` (as we do) |
