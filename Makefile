@@ -68,14 +68,8 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 		--bytecode_path "$(CIRCUIT_TARGET)/compliance.json" \
 		--witness_path "$(CIRCUIT_TARGET)/compliance.gz" \
 		--output_path "$(CIRCUIT_TARGET)" \
-		--output_format binary
-	@echo "=== Generating verification key ==="
-	$(BB) write_vk \
-		--scheme ultra_honk \
-		--oracle_hash keccak \
-		--bytecode_path "$(CIRCUIT_TARGET)/compliance.json" \
-		--output_path "$(CIRCUIT_TARGET)" \
-		--output_format binary
+		--output_format binary \
+		--write_vk
 	@# Flatten nested output dirs from bb (same as rs-soroban-ultrahonk)
 	@if [ -d "$(CIRCUIT_TARGET)/vk/vk" ]; then \
 		mv "$(CIRCUIT_TARGET)/vk/vk" "$(CIRCUIT_TARGET)/vk.tmp"; \
