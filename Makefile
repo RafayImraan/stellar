@@ -2,7 +2,7 @@
 
 # ── Barretenberg bb binary ─────────────────────────────────────────────────
 # Prefer the explicit bbup install path; fall back to PATH
-BB := $(HOME)/.bb/bin/bb
+BB := $(HOME)/.bb/bb
 ifeq ($(wildcard $(BB)),)
   BB := bb
 endif

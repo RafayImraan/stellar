@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/config.sh"
 
-export PATH="$HOME/.nargo/bin:$HOME/.bb/bin:$PATH"
+export PATH="$HOME/.nargo/bin:$HOME/.bb:$PATH"
 
 if ! command -v bb >/dev/null 2>&1; then
   echo -e "${YELLOW}bb not found — install with: bbup${NC}"
