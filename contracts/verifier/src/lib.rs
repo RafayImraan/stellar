@@ -11,7 +11,7 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, symbol_short, Bytes, BytesN, Env, Map,
     Symbol,
 };
-use ultrahonk_soroban_verifier::{UltraHonkVerifier, VkLoadError};
+use ultrahonk_soroban_verifier::UltraHonkVerifier;
 
 /// Number of public inputs in the compliance circuit (must match circuit order).
 const NUM_PUBLIC_INPUTS: u32 = 5;
