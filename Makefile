@@ -1,7 +1,11 @@
 .PHONY: all check-deps merkle-deps merkle-data prover-toml circuit-proof deploy submit clean
 
-# ── Ensure Barretenberg bb (not babashka) takes priority ───────────────────
-export PATH := $(HOME)/.bb/bin:$(HOME)/.nargo/bin:$(PATH)
+# ── Barretenberg bb binary ─────────────────────────────────────────────────
+# Prefer the explicit bbup install path; fall back to PATH
+BB := $(HOME)/.bb/bin/bb
+ifeq ($(wildcard $(BB)),)
+  BB := bb
+endif
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 MERKLE_DIR    := merkle
@@ -23,7 +27,7 @@ check-deps:
 	@echo "=== Checking prerequisites ==="
 	@command -v node >/dev/null 2>&1 || { echo "Missing: node (Node.js 18+)"; exit 1; }
 	@command -v nargo >/dev/null 2>&1 || { echo "Missing: nargo (run noirup)"; exit 1; }
-	@command -v bb >/dev/null 2>&1 || { echo "Missing: bb (run bbup)"; exit 1; }
+	@$(BB) --version >/dev/null 2>&1 || { echo "Missing: barretenberg bb (run bbup)"; exit 1; }
 	@echo "  All prerequisites found."
 
 check-stellar:
@@ -58,7 +62,7 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 	cd "$(CIRCUIT_DIR)" && nargo check && nargo compile && nargo execute
 	@echo "=== Generating UltraHonk proof ==="
 	mkdir -p "$(PROOFS_DIR)"
-	bb prove \
+	$(BB) prove \
 		--scheme ultra_honk \
 		--oracle_hash keccak \
 		--bytecode_path "$(CIRCUIT_TARGET)/compliance.json" \
@@ -66,7 +70,7 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 		--output_path "$(CIRCUIT_TARGET)" \
 		--output_format bytes_and_fields
 	@echo "=== Generating verification key ==="
-	bb write_vk \
+	$(BB) write_vk \
 		--scheme ultra_honk \
 		--oracle_hash keccak \
 		--bytecode_path "$(CIRCUIT_TARGET)/compliance.json" \
@@ -82,7 +86,7 @@ $(PROOF_FILE) $(VK_FILE) $(PUBLIC_INPUTS_FILE): $(PROVER_TOML)
 	cp "$(CIRCUIT_TARGET)/public_inputs" "$(PUBLIC_INPUTS_FILE)"
 	cp "$(CIRCUIT_TARGET)/vk" "$(VK_FILE)"
 	@echo "=== Local verification ==="
-	bb verify \
+	$(BB) verify \
 		--scheme ultra_honk \
 		--oracle_hash keccak \
 		--proof_path "$(CIRCUIT_TARGET)/proof" \
