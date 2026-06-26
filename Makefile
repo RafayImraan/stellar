@@ -1,5 +1,8 @@
 .PHONY: all check-deps merkle-deps merkle-data prover-toml circuit-proof deploy submit clean
 
+# ── Ensure Barretenberg bb (not babashka) takes priority ───────────────────
+export PATH := $(HOME)/.bb/bin:$(HOME)/.nargo/bin:$(PATH)
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 MERKLE_DIR    := merkle
 MERKLE_DATA   := merkle/merkle_data.json
