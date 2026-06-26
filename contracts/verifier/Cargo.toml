@@ -8,16 +8,14 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-soroban-sdk = { version = "26.0.1", features = ["alloc"] }
-# rs-soroban-ultrahonk — UltraHonk verifier for Soroban
-# Main branch expects VK format from bb < v5 (1760 bytes).
-# For bb v5+ (protocol 25, 1888-byte VK), use PR #26 branch:
-#   rev = "theahaco/feat/bb3-nozk-verifier"
+soroban-sdk = { version = "25.3.0", features = ["alloc"] }
+# rs-soroban-ultrahonk PR#26 — adds bb v5 / protocol 25 support for VK (1888 bytes)
+# Uses soroban-sdk 25.3.0 (must match our SDK version).
 # See: https://github.com/NethermindEth/rs-soroban-ultrahonk/pull/26
-ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", package = "ultrahonk_soroban_verifier", default-features = false }
+ultrahonk_soroban_verifier = { git = "https://github.com/NethermindEth/rs-soroban-ultrahonk", rev = "eae28b3eb654369988e10dbc2e2fec280dd8561d", package = "ultrahonk_soroban_verifier", default-features = false }
 
 [dev-dependencies]
-soroban-sdk = { version = "26.0.1", features = ["testutils", "alloc"] }
+soroban-sdk = { version = "25.3.0", features = ["testutils", "alloc"] }
 
 [profile.release]
 opt-level = "z"

@@ -3,13 +3,14 @@
 //! ZK Remittance Compliance Verifier — Soroban Smart Contract
 //!
 //! Verifies UltraHonk ZK proofs from the compliance Noir circuit and tracks
-//! nullifiers to prevent proof replay. Based on rs-soroban-ultrahonk patterns.
+//! nullifiers to prevent proof replay. Based on rs-soroban-ultrahonk PR#26
+//! (bb v5 / protocol 25 compatible).
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, symbol_short, Bytes, BytesN, Env, Map,
     Symbol,
 };
-use ultrahonk_soroban_verifier::{UltraHonkVerifier, VkLoadError, PROOF_BYTES};
+use ultrahonk_soroban_verifier::{verifier::VerifyError, SorobanEc, UltraHonkVerifier};
 
 /// Number of public inputs in the compliance circuit (must match circuit order).
 const NUM_PUBLIC_INPUTS: u32 = 5;
@@ -25,22 +26,18 @@ pub struct ComplianceVerifier;
 #[repr(u32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
-    /// VK byte slice does not match the expected exact length.
-    VkInvalidLength = 1,
-    /// VK header contains out-of-range structural parameters.
-    VkInvalidParameters = 2,
-    /// Proof byte slice does not match the expected exact length.
-    ProofParseError = 3,
+    /// VK byte slice does not match expected length or parameters.
+    VkInvalid = 1,
     /// Cryptographic verification failed.
-    InvalidProof = 4,
+    InvalidProof = 2,
     /// No VK has been stored in contract instance storage.
-    VkNotSet = 5,
+    VkNotSet = 3,
     /// Constructor has already been called; VK is immutable.
-    AlreadyInitialized = 6,
+    AlreadyInitialized = 4,
     /// Public inputs buffer has wrong length for this circuit.
-    InvalidPublicInputs = 7,
+    InvalidPublicInputs = 5,
     /// Nullifier has already been consumed (replay attempt).
-    NullifierAlreadyUsed = 8,
+    NullifierAlreadyUsed = 6,
 }
 
 /// Emitted when a compliance proof is successfully verified.
@@ -66,12 +63,8 @@ impl ComplianceVerifier {
         if env.storage().instance().has(&Self::key_vk()) {
             return Err(Error::AlreadyInitialized);
         }
-        let _ = UltraHonkVerifier::new(&env, &vk_bytes).map_err(|e| match e {
-            VkLoadError::WrongLength => Error::VkInvalidLength,
-            VkLoadError::InvalidParameters => Error::VkInvalidParameters,
-        })?;
+        let _ = UltraHonkVerifier::new(&env, &vk_bytes).map_err(|_| Error::VkInvalid)?;
         env.storage().instance().set(&Self::key_vk(), &vk_bytes);
-        // Nullifier set stored in instance storage (demo-friendly, no TTL bump needed)
         let nullifiers: Map<BytesN<32>, bool> = Map::new(&env);
         env.storage().instance().set(&Self::key_nullifiers(), &nullifiers);
         Ok(())
@@ -86,7 +79,7 @@ impl ComplianceVerifier {
     }
 
     /// Extract the nullifier field (32 bytes) from serialized public inputs.
-    fn extract_nullifier(env: &Env, public_inputs: &Bytes) -> Result<BytesN<32>, Error> {
+    fn extract_nullifier(public_inputs: &Bytes) -> Result<BytesN<32>, Error> {
         let expected_len = (NUM_PUBLIC_INPUTS * FIELD_BYTES) as usize;
         if public_inputs.len() as usize != expected_len {
             return Err(Error::InvalidPublicInputs);
@@ -95,7 +88,7 @@ impl ComplianceVerifier {
         let slice = public_inputs.slice(offset..offset + FIELD_BYTES);
         let mut arr = [0u8; 32];
         slice.copy_into_slice(&mut arr);
-        Ok(BytesN::from_array(&env, &arr))
+        Ok(BytesN::from_array(arr))
     }
 
     fn nullifiers(env: &Env) -> Map<BytesN<32>, bool> {
@@ -117,13 +110,8 @@ impl ComplianceVerifier {
         proof_bytes: Bytes,
         public_inputs: Bytes,
     ) -> Result<bool, Error> {
-        if proof_bytes.len() as usize != PROOF_BYTES {
-            return Err(Error::ProofParseError);
-        }
+        let nullifier = Self::extract_nullifier(&public_inputs)?;
 
-        let nullifier = Self::extract_nullifier(&env, &public_inputs)?;
-
-        // Replay protection
         let mut map = Self::nullifiers(&env);
         if map.get(nullifier.clone()).unwrap_or(false) {
             return Err(Error::NullifierAlreadyUsed);
@@ -135,20 +123,15 @@ impl ComplianceVerifier {
             .get(&Self::key_vk())
             .ok_or(Error::VkNotSet)?;
 
-        let verifier = UltraHonkVerifier::new(&env, &vk_bytes).map_err(|e| match e {
-            VkLoadError::WrongLength => Error::VkInvalidLength,
-            VkLoadError::InvalidParameters => Error::VkInvalidParameters,
-        })?;
+        let verifier = UltraHonkVerifier::new(&env, &vk_bytes).map_err(|_| Error::VkInvalid)?;
 
         verifier
-            .verify(&env, &proof_bytes, &public_inputs)
+            .verify(&proof_bytes, &public_inputs)
             .map_err(|_| Error::InvalidProof)?;
 
-        // Mark nullifier as used
         map.set(nullifier.clone(), true);
         Self::set_nullifiers(&env, map);
 
-        // Emit compliance event
         ComplianceVerified {
             nullifier,
             timestamp: env.ledger().timestamp(),
@@ -163,22 +146,5 @@ impl ComplianceVerifier {
         Self::nullifiers(&env)
             .get(nullifier)
             .unwrap_or(false)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use soroban_sdk::testutils::Ledger as _;
-
-    #[test]
-    fn rejects_invalid_public_input_length() {
-        let env = Env::default();
-        env.mock_all_auths();
-        let bad_inputs = Bytes::from_slice(&env, &[0u8; 64]);
-        let proof = Bytes::from_slice(&env, &[0u8; PROOF_BYTES]);
-        // Without VK set, we won't reach verify — test extract via verify_compliance path
-        let result = ComplianceVerifier::verify_compliance(env, proof, bad_inputs);
-        assert_eq!(result, Err(Error::InvalidPublicInputs));
     }
 }

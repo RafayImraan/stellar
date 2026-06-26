@@ -13,19 +13,14 @@ if [ ! -f "$VK_PATH" ]; then
   bash "$SCRIPT_DIR/generate_proof.sh"
 fi
 
-# ── VK format compatibility check ──────────────────────────────────────────
-# bb v5.0.0-nightly (protocol 25) produces a new VK format (1888 bytes) that
-# rs-soroban-ultrahonk@main does not support (expects 1760 bytes, old format).
-# If constructor fails with Error::VkInvalidLength, either:
-#   A. Downgrade bb: bbup -v 0.87.0  (produces old 1760-byte VK format)
-#   B. Pin rs-soroban-ultrahonk to PR#26 branch (adds protocol 25 support):
-#      https://github.com/NethermindEth/rs-soroban-ultrahonk/pull/26
+# ── VK format check ────────────────────────────────────────────────────────
+# Now using rs-soroban-ultrahonk PR#26 which supports bb v5 protocol 25 VK
+# format (1888 bytes = 3×Fr header + 28 G1 points).
 VK_BYTES=$(wc -c < "$VK_PATH" 2>/dev/null || echo 0)
 if [ "$VK_BYTES" = "1888" ]; then
-  echo -e "${YELLOW}Warning: VK is 1888 bytes (bb v5 protocol 25 format).${NC}"
-  echo -e "${YELLOW}If deploy fails with Error::VkInvalidLength, see comment above.${NC}"
+  echo -e "${GREEN}VK is 1888 bytes (bb v5 protocol 25 — compatible with PR#26).${NC}"
 elif [ "$VK_BYTES" = "1760" ]; then
-  echo -e "${GREEN}VK is 1760 bytes (compatible format).${NC}"
+  echo -e "${YELLOW}VK is 1760 bytes (old format). Install latest bb: bbup${NC}"
 fi
 
 echo -e "${BLUE}=== Building Soroban contract ===${NC}"
