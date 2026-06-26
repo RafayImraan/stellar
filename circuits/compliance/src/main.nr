@@ -13,9 +13,21 @@ use poseidon::poseidon::bn254::hash_2;
 /// Merkle tree depth — 2^8 = 256 leaves (matches off-chain builder).
 global TREE_DEPTH: u32 = 8;
 
-/// Compare two field elements as integers (required in Noir 1.0+).
+/// Compare two field elements as integers (byte-by-byte, works in all Noir 1.0+).
 fn field_lt(a: Field, b: Field) -> bool {
-    (a as u256) < (b as u256)
+    let a_bytes = a.to_be_bytes(32);
+    let b_bytes = b.to_be_bytes(32);
+    let mut i = 0;
+    let mut result = false;
+    while i < 32 {
+        if a_bytes[i] != b_bytes[i] {
+            result = a_bytes[i] < b_bytes[i];
+            i = 32;
+        } else {
+            i = i + 1;
+        }
+    };
+    result
 }
 
 /// Reconstruct a Merkle root from a leaf, sibling path, and left/right indicators.
