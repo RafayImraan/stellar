@@ -8,9 +8,9 @@
 //
 // Uses a deterministic arithmetic hash (guaranteed parity with JS tree builder).
 // Note: This is a demo hash. In production, use a proper cryptographic hash
-// with a verified cross-platform implementation (e.g. bb Poseidon via Noir std).
+// with a verified cross-platform implementation (ex: bb Poseidon via Noir std).
 
-/// Merkle tree depth — 2^8 = 256 leaves (matches off-chain builder).
+/// Merkle tree depth - 2^8 = 256 leaves (matches off-chain builder).
 global TREE_DEPTH: u32 = 8;
 
 /// Compare two field elements as integers (byte-by-byte, works in all Noir 1.0+).
@@ -30,7 +30,7 @@ fn field_lt(a: Field, b: Field) -> bool {
     result
 }
 
-/// Deterministic arithmetic pair hash — guaranteed identical on both Noir and JS.
+/// Deterministic arithmetic pair hash - guaranteed identical on both Noir and JS.
 /// Not cryptographically secure (demo only). In production, use a proven hash
 /// with verified cross-platform implementations.
 fn hash_pair(left: Field, right: Field) -> Field {
@@ -56,13 +56,13 @@ fn compute_merkle_root<let N: u32>(
 }
 
 fn main(
-    // ── Public inputs (visible to on-chain verifier) ──────────────────────
+    // -- Public inputs (visible to on-chain verifier) --------------------
     merkle_root: pub Field,
     min_threshold: pub u64,
     max_threshold: pub u64,
     allowed_jurisdictions_root: pub Field,
     nullifier: pub Field,
-    // ── Private inputs ────────────────────────────────────────────────────
+    // -- Private inputs --------------------------------------------------
     sender_address_hash: Field,
     amount: u64,
     jurisdiction_code: Field,
@@ -79,15 +79,15 @@ fn main(
     jurisdiction_siblings: [Field; TREE_DEPTH],
     jurisdiction_indices: [bool; TREE_DEPTH],
 ) {
-    // ── 1. Nullifier binding (anti-replay) ────────────────────────────────
+    // -- 1. Nullifier binding (anti-replay) --------------------------------
     let computed_nullifier = hash_pair(secret, nonce);
     assert(computed_nullifier == nullifier);
 
-    // ── 2. Amount range proof ─────────────────────────────────────────────
+    // -- 2. Amount range proof ---------------------------------------------
     assert(min_threshold <= amount, "Amount below minimum threshold");
     assert(amount <= max_threshold, "Amount above maximum threshold");
 
-    // ── 3. Sanctions NON-membership (sorted Merkle exclusion) ─────────────
+    // -- 3. Sanctions NON-membership (sorted Merkle exclusion) -------------
     let left_root = compute_merkle_root(left_neighbor, left_siblings, left_indices);
     assert(left_root == merkle_root, "Left neighbor not in sanctions tree");
 
@@ -100,7 +100,7 @@ fn main(
     assert(field_lt(left_neighbor, sender_address_hash), "Sender not above left bound");
     assert(field_lt(sender_address_hash, right_neighbor), "Sender not below right bound");
 
-    // ── 4. Jurisdiction membership proof ──────────────────────────────────
+    // -- 4. Jurisdiction membership proof ----------------------------------
     let juris_root =
         compute_merkle_root(jurisdiction_code, jurisdiction_siblings, jurisdiction_indices);
     assert(juris_root == allowed_jurisdictions_root, "Jurisdiction not allowed");
